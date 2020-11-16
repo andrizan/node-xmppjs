@@ -1,7 +1,5 @@
-```
 node-xmppjs
 
 require 
-  node jjs
+  node js
 run npm install before run file index.js
-```
