@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  mongo:
+    container_name: db
+    image: mongo
+    volumes:
+      - db_xmppjs:/data/db
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: root
+    #   MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - 27017:27017
+volumes:
+  db_xmppjs:
+    name: db_xmppjs

@@ -1,6 +1,11 @@
 {
   "dependencies": {
     "@xmpp/client": "^0.11.1",
-    "@xmpp/debug": "^0.11.0"
+    "@xmpp/debug": "^0.11.0",
+    "mongoose": "^5.10.14"
+  },
+  "scripts": {
+    "start": "node ./index.js",
+    "dev": "nodemon ./index.js"
   }
 }

@@ -1,6 +1,9 @@
 // Client is the actual Client class, xml is a convenience function for building
 // valid XML.
 const { client, xml, jid } = require("@xmpp/client");
+const mongoose = require('mongoose');
+const db = require('./config/db.config');
+const Chat = require('./app/models/Chat');
 // const debug = require("@xmpp/debug");
 
 const xmpp = client({
@@ -9,6 +12,16 @@ const xmpp = client({
   password: "12345678",
 });
 
+// koneksi Ke Database
+mongoose.connect(db.url, {
+  useNewUrlParser: true,
+})
+  .then(() => {
+    console.log("database connected");
+  }).catch(err => {
+    console.log(err);
+    process.exit();
+  });
 // Node doesn't like self-signed certificates. You could also pass this as an
 // environment variable.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -44,20 +57,36 @@ xmpp.on('stanza', stanza => {
   if (stanza.is('message') && stanza.attrs.from !== xmpp.jid) {
     stanza.children.forEach(child => {
       if (child.name === 'body') {
-        const response = child.children.join('\n');
-        if (response == 'start') {
-          xmpp.send(
-            xml('message', { to: stanza.attrs.from, type: 'chat' },
-              xml('body', {}, 'Ok, Robot iki wes melaku. opo seng kuwe butohno')
-            )
-          );
-        } else {
-          xmpp.send(
-            xml('message', { to: stanza.attrs.from, type: 'chat' },
-              xml('body', {}, 'perintah seng nok ketekno rak ono')
-            )
-          );
-        }
+        const jid = stanza.attrs.from;
+        const msg = child.children.join('\n');
+        Chat.create({ jid, msg })
+          .then(function () {
+            xmpp.send(
+              xml('message', { to: jid, type: 'chat' },
+                xml('body', {}, 'pesan berhasil disimpan')
+              )
+            );
+          }, function (err) {
+            xmpp.send(
+              xml('message', { to: jid, type: 'chat' },
+                xml('body', {}, err)
+              )
+            );
+          });
+
+        // if (response == 'start') {
+        //   xmpp.send(
+        //     xml('message', { to: stanza.attrs.from, type: 'chat' },
+        //       xml('body', {}, 'Ok, Robot iki wes melaku. opo seng kuwe butohno')
+        //     )
+        //   );
+        // } else {
+        //   xmpp.send(
+        //     xml('message', { to: stanza.attrs.from, type: 'chat' },
+        //       xml('body', {}, 'perintah seng nok ketekno rak ono')
+        //     )
+        //   );
+        // }
       }
     });
   }
