@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const chatScheme = new mongoose.Schema(
+const Scheme = new mongoose.Schema(
   {
     jid: {
       type: String,
@@ -16,4 +16,4 @@ const chatScheme = new mongoose.Schema(
     versionKey: false,
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
   });
-module.exports = mongoose.model("Chat", chatScheme);
+module.exports = mongoose.model("Chat", Scheme);

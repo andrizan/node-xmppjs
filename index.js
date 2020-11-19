@@ -1,16 +1,21 @@
 // Client is the actual Client class, xml is a convenience function for building
 // valid XML.
+// const debug = require("@xmpp/debug");
 const { client, xml, jid } = require("@xmpp/client");
 const mongoose = require('mongoose');
+const CryptoJS = require("crypto-js");
 const db = require('./config/db.config');
 const Chat = require('./app/models/Chat');
-// const debug = require("@xmpp/debug");
+const JabberAccount = require('./app/models/JabberAccount');
+const secretKey = "NlPVHl45ojDhzuc2Yw4nBFZJXtbNko2K";
 
-const xmpp = client({
-  service: "xmpp://chatserver.space:5222",
-  username: "riski",
-  password: "12345678",
-});
+const xmpp = client(
+  {
+    service: "xmpp://616.pub:5222",
+    username: "slime2",
+    password: "12345678",
+  }
+);
 
 // koneksi Ke Database
 mongoose.connect(db.url, {
@@ -59,34 +64,76 @@ xmpp.on('stanza', stanza => {
       if (child.name === 'body') {
         const jid = stanza.attrs.from;
         const msg = child.children.join('\n');
-        Chat.create({ jid, msg })
-          .then(function () {
-            xmpp.send(
-              xml('message', { to: jid, type: 'chat' },
-                xml('body', {}, 'pesan berhasil disimpan')
-              )
-            );
-          }, function (err) {
-            xmpp.send(
-              xml('message', { to: jid, type: 'chat' },
-                xml('body', {}, err)
-              )
-            );
-          });
 
-        // if (response == 'start') {
-        //   xmpp.send(
-        //     xml('message', { to: stanza.attrs.from, type: 'chat' },
-        //       xml('body', {}, 'Ok, Robot iki wes melaku. opo seng kuwe butohno')
-        //     )
-        //   );
-        // } else {
-        //   xmpp.send(
-        //     xml('message', { to: stanza.attrs.from, type: 'chat' },
-        //       xml('body', {}, 'perintah seng nok ketekno rak ono')
-        //     )
-        //   );
-        // }
+        xmpp.send(
+          xml('message', { to: jid, type: 'chat' },
+            xml('body', {}, 'pesan sedang diproses')
+          )
+        );
+
+        if (msg.match(/#SAVEMSG/g)) {
+          Chat.create({ jid, msg })
+            .then(function (result) {
+              xmpp.send(
+                xml('message', { to: jid, type: 'chat' },
+                  xml('body', {}, `pesan berhasil disimpan [${result}]`)
+                )
+              );
+            }, function (err) {
+              xmpp.send(
+                xml('message', { to: jid, type: 'chat' },
+                  xml('body', {}, err)
+                )
+              );
+            });
+        } else if (msg.match(/#GETACCOUNT/g)) {
+          JabberAccount.find().then(function (result) {
+            console.log(result);
+            xmpp.send(
+              xml('message', { to: jid, type: 'chat' },
+                xml('body', {}, result)
+              )
+            );
+          })
+        } else if (msg.match(/#help/i)) {
+          xmpp.send(
+            xml('message', { to: jid, type: 'chat' },
+              xml('body', {}, "list perintah")
+            )
+          );
+        } else if (msg.match(/#SAVEACCOUNT/g)) {
+          let data = msg.split('#');
+
+          JabberAccount.create(
+            {
+              jid: data[2],
+              username: data[3],
+              password: encrypt(data[4]),
+              host: data[5],
+              port: data[6],
+              status: data[7],
+            })
+            .then(function () {
+              xmpp.send(
+                xml('message', { to: jid, type: 'chat' },
+                  xml('body', {}, 'Akun berhasil disimpan ' + decrypt(encrypt(data[4])))
+                )
+              );
+            }, function (err) {
+              xmpp.send(
+                xml('message', { to: jid, type: 'chat' },
+                  xml('body', {}, `Akun gagal disimpan [${err}]`)
+                )
+              );
+            });
+        } else {
+          xmpp.send(
+            xml('message', { to: jid, type: 'chat' },
+              xml('body', {}, 'Perintah tidak ditemukan')
+            )
+          );
+        }
+
       }
     });
   }
@@ -99,7 +146,7 @@ xmpp.on('online', jid => {
   xmpp.send(
     xml('presence', {},
       xml('show', {}, 'chat'),
-      xml('status', {}, 'I say everything you do!'),
+      xml('status', {}, 'Saya Online'),
     )
   );
 });
@@ -109,8 +156,16 @@ xmpp.on('online', jid => {
 //   return authenticate('echo_bot', 'password');
 // });
 
-// This actually launches the server.
 xmpp
   .start('xmpp://localhost:5222')
   .catch(err => console.error('start failed', err.message));
 
+function encrypt(data) {
+  let result = CryptoJS.AES.encrypt(data, secretKey).toString();
+  return result;
+}
+
+function decrypt(data) {
+  let result = CryptoJS.AES.decrypt(data, secretKey).toString(CryptoJS.enc.Utf8);
+  return result;
+}

@@ -2,7 +2,7 @@ version: '3'
 
 services:
   mongo:
-    container_name: db
+    container_name: db_xmppjs
     image: mongo
     volumes:
       - db_xmppjs:/data/db
