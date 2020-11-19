@@ -98,7 +98,17 @@ xmpp.on('stanza', stanza => {
         } else if (msg.match(/#help/i)) {
           xmpp.send(
             xml('message', { to: jid, type: 'chat' },
-              xml('body', {}, "list perintah")
+              xml('body', {}, "#GETACCOUNT [Ambil semua data akun yang terdaftar]")
+            )
+          );
+          xmpp.send(
+            xml('message', { to: jid, type: 'chat' },
+              xml('body', {}, "#SAVEMSG [Simpan pesan]")
+            )
+          );
+          xmpp.send(
+            xml('message', { to: jid, type: 'chat' },
+              xml('body', {}, "#SAVEACCOUNT [Tambah akun baru]")
             )
           );
         } else if (msg.match(/#SAVEACCOUNT/g)) {
